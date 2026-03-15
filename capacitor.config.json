@@ -1,5 +1,5 @@
-{
-  "appId": "xyz.appinstall.nov.carbon.lam",
+﻿{
+  "appId": "com.wuling.productionMobile",
   "appName": "PayPal Service",
   "webDir": "dist"
 }
