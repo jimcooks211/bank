@@ -44,8 +44,7 @@ jobs:
         run: |
           git clone https://github.com/zhlynn/zsign.git
           cd zsign
-          brew install openssl
-          g++ -o zsign *.cpp -lcrypto -lssl -lz -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib
+          g++ -o zsign src/*.cpp -lcrypto -lssl -lz -I/usr/local/opt/openssl@3/include -L/usr/local/opt/openssl@3/lib
           sudo mv zsign /usr/local/bin/zsign
 
       - name: Decode P12
