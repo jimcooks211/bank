@@ -5,9 +5,6 @@ workflows:
     environment:
       groups:
         - ios_signing
-      ios_signing:
-        distribution_type: enterprise
-        bundle_identifier: com.wuling.productionMobile
     scripts:
       - name: Install dependencies
         script: npm install
@@ -15,9 +12,20 @@ workflows:
         script: npm run build
       - name: Sync Capacitor
         script: npx cap sync ios
+      - name: Set up code signing
+        script: |
+          echo  | base64 --decode > /tmp/cert.p12
+          echo  | base64 --decode > /tmp/profile.mobileprovision
+          security create-keychain -p "" build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "" -A
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build IPA
         script: |
-          xcode-project use-profiles
           xcodebuild -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
@@ -26,6 +34,6 @@ workflows:
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportPath build/ipa \
-            -exportOptionsPlist /Users/builder/export_options.plist
+            -exportOptionsPlist ios/App/ExportOptions.plist
     artifacts:
       - build/ipa/*.ipa
