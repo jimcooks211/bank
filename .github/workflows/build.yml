@@ -1,4 +1,4 @@
-name: Build IPA
+﻿name: Build IPA
 
 on:
   push:
@@ -32,28 +32,25 @@ jobs:
 
       - name: Build unsigned IPA
         run: |
-          xcodebuild \
-            -project ios/App/App.xcodeproj \
-            -scheme App \
-            -sdk iphoneos \
-            -configuration Debug \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            clean build \
-            CONFIGURATION_BUILD_DIR=$PWD/build/output
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphoneos -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO clean build CONFIGURATION_BUILD_DIR=$PWD/build/output
 
       - name: Package into IPA
         run: |
           mkdir -p build/Payload
           cp -r build/output/App.app build/Payload/App.app
-          cd build
-          zip -r App.ipa Payload
+          cd build && zip -r App.ipa Payload
 
-      - name: Upload IPA artifact
+      - name: Install zsign
+        run: brew install zsign
+
+      - name: Decode P12
+        run: echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
+
+      - name: Sign IPA
+        run: zsign -k cert.p12 -p "${{ secrets.P12_PASSWORD }}" -o build/App_signed.ipa build/App.ipa
+
+      - name: Upload Signed IPA
         uses: actions/upload-artifact@v4
         with:
-          name: PayPal-Service-IPA
-          path: build/App.ipa
-          retention-days: 7
+          name: PayPal-Service-Signed
+          path: build/App_signed.ipa
