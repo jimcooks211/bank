@@ -1,4 +1,4 @@
-﻿name: Build IPA
+name: Build IPA
 on:
   push:
     branches: [main, master]
@@ -48,19 +48,20 @@ jobs:
           echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
           echo "${{ secrets.CRT_BASE64 }}" | base64 --decode > cert.crt
 
-          # Delete keychain if it already exists
-          security delete-keychain signing.keychain || true
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain
 
-          security create-keychain -p "buildpass" signing.keychain
-          security import cert.p12 -k signing.keychain -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign -f pkcs12
-          security import cert.crt -k signing.keychain -T /usr/bin/codesign
-          security list-keychains -s signing.keychain
-          security default-keychain -s signing.keychain
-          security unlock-keychain -p "buildpass" signing.keychain
-          security set-key-partition-list -S apple-tool:,apple: -s -k "buildpass" signing.keychain
+          security delete-keychain $KEYCHAIN_PATH || true
+
+          security create-keychain -p "buildpass" $KEYCHAIN_PATH
+          security import cert.p12 -k $KEYCHAIN_PATH -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign -f pkcs12
+          security import cert.crt -k $KEYCHAIN_PATH -T /usr/bin/codesign
+          security list-keychains -s $KEYCHAIN_PATH
+          security default-keychain -s $KEYCHAIN_PATH
+          security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -s -k "buildpass" $KEYCHAIN_PATH
 
       - name: Show identities
-        run: security find-identity -v -p codesigning signing.keychain
+        run: security find-identity -v -p codesigning $RUNNER_TEMP/signing.keychain
 
       - name: Sign and package IPA
         run: |
@@ -77,4 +78,4 @@ jobs:
 
       - name: Cleanup keychain
         if: always()
-        run: security delete-keychain signing.keychain || true
+        run: security delete-keychain $RUNNER_TEMP/signing.keychain || true
