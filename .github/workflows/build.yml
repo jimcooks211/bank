@@ -48,23 +48,35 @@ jobs:
           echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
           echo "${{ secrets.CRT_BASE64 }}" | base64 --decode > cert.crt
 
-          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
 
-          security delete-keychain $KEYCHAIN_PATH || true
+          # Nuke everything
+          security delete-keychain $KEYCHAIN_PATH 2>/dev/null || true
+          security delete-keychain ~/Library/Keychains/signing.keychain-db 2>/dev/null || true
 
-          security find-identity -v -p codesigning | grep "iPhone" | awk '{print $2}' | xargs -I {} security delete-identity -Z {} || true
+          # Remove any existing iPhone certs from all keychains
+          for KEYCHAIN in $(security list-keychains | tr -d '"' | xargs); do
+            security find-certificate -c "iPhone" -a $KEYCHAIN 2>/dev/null | \
+            grep "labl" | awk -F'"' '{print $4}' | \
+            xargs -I{} security delete-certificate -c "{}" $KEYCHAIN 2>/dev/null || true
+          done
 
+          # Create fresh keychain
           security create-keychain -p "buildpass" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security import cert.p12 -k $KEYCHAIN_PATH -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign -f pkcs12
-          security import cert.crt -k $KEYCHAIN_PATH -T /usr/bin/codesign
+          security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
+
+          # Import certs with -A flag (allow all applications)
+          security import cert.p12 -k $KEYCHAIN_PATH -P "${{ secrets.P12_PASSWORD }}" -A
+          security import cert.crt -k $KEYCHAIN_PATH -A
+
+          # Add to keychain search list
           security list-keychains -s $KEYCHAIN_PATH ~/Library/Keychains/login.keychain-db
           security default-keychain -s $KEYCHAIN_PATH
-          security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -s -k "buildpass" $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "buildpass" $KEYCHAIN_PATH
 
       - name: Show identities
-        run: security find-identity -v -p codesigning $RUNNER_TEMP/signing.keychain
+        run: security find-identity -v -p codesigning
 
       - name: Sign and package IPA
         run: |
@@ -81,4 +93,4 @@ jobs:
 
       - name: Cleanup keychain
         if: always()
-        run: security delete-keychain $RUNNER_TEMP/signing.keychain || true
+        run: security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
