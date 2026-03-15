@@ -1,0 +1,28 @@
+name: Build IPA
+on: [push]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: Sync Capacitor
+        run: npx cap sync ios
+      - name: Build IPA
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj \
+          -scheme App \
+          -sdk iphoneos \
+          -configuration Debug \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          clean build
+      - name: Upload IPA
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-ipa
+          path: "**/*.ipa"
