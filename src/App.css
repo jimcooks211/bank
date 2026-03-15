@@ -1,0 +1,452 @@
+
+
+/* Loading_SignIn Component Styles */
+
+/* Center the spinner absolutely in the viewport */
+.half-circle-spinner {
+  border-style: solid;
+  border-color:black;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Optional: smooth rendering */
+  box-sizing: border-box;
+}
+
+.spinnerparent {
+  background-color: white;
+  height: 100vh;
+}
+
+/* Keyframes for rotation */
+@keyframes spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+
+/* End of Loading_SignIn Component Styles */
+
+
+/* SignIn Component Styles */
+
+.SignIn {
+  margin: 0 auto;
+  padding: 15px;
+  display: grid;
+}
+
+@media (min-width: 576px) {
+  .SignIn {
+    display: grid;
+  max-width: 20rem;
+  display: grid;
+  gap: .5rem;
+  justify-content: center;
+  margin: 0 auto;
+  max-height: 100vh;
+  }
+}
+
+.SignIn_Container {
+  overflow: hidden;
+  position: fixed;
+  height: 100vh;
+  width: 100vw;
+}
+
+.SignIn_Container::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  width: 100%;
+  height: 2.5rem;
+  background: white;
+  left: 0;
+  z-index: 10;
+}
+
+.SignIn input {
+  border: .8px solid rgba(185, 182, 182, 0.712);
+  border-radius: 10px;
+  height: 63px;
+  margin-top: 15px;
+  border-width: 1px .5px 1px .5px;
+  padding-left: 10px;
+}
+
+
+.SignIn input:focus {
+  outline: none;
+  border: 2px solid #0048e4;
+  border-width: 2px .9px 2px 0.9px;
+}
+
+.SignIn input::-webkit-input-placeholder {
+  color: rgb(117, 116, 116);
+  font-size: 12px;
+}
+
+.SignIn p:nth-child(7) {
+  color: #0048e4;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-size: 11px;
+  font-weight: light;
+  -webkit-text-stroke: 0.45px;
+  transform: translate(0, 3px);
+}
+.SignIn p:nth-child(3), .Create-Account > div:nth-child(2) > p:nth-child(2) {
+  text-align: center;
+  font-family: "Futura", sans-serif;
+  font-weight: bold;
+  font-size: 28px;
+  display: inline-block;
+  transform: scaleY(1.09);
+  margin-top: 33px;
+}
+
+.SignIn img {
+  margin: 0 auto 0px auto;
+  transform: translate(0, 1.7rem);
+}
+
+.SignIn button {
+  border-radius: 25px;
+  height: 3.1rem;
+  padding: 10px;
+  border: 1px solid rgba(169, 169, 169, 0.496);
+  font-weight: bold;
+  margin-top: 10px;
+  background-color: transparent;
+  font-family: sans-serif;
+  letter-spacing: 0.02em;
+  -webkit-text-stroke: 0.02em;
+  font-size: 12.5px;
+  color: black;
+}
+
+.SignIn button:nth-child(9) {
+  background-color: rgba(0, 0, 0, 0.91);
+  color: white;
+  margin-bottom: 5px;
+  border: transparent;
+}
+
+.SignIn button:nth-child(9):focus-visible, .SignIn button:nth-child(9):active {
+  background-color: rgba(0, 0, 0, 0.674);
+  color: rgba(255, 255, 255, 0.618);
+}
+
+.SignIn button:nth-child(10):focus-visible, .SignIn button:nth-child(10):active {
+  background-color: transparent;
+  color: rgba(35, 35, 35, 0.492);
+  border-color: rgba(88, 88, 88, 0);
+}
+
+
+.SignIn a:nth-child(11){
+  text-decoration: none;
+  color: #0048e4;
+  font-weight: light;
+  font-size: 10.5px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  text-decoration: none;
+  text-align: center;
+  -webkit-text-stroke: 0.1px;
+  margin-top: 20px;
+}
+ .SignIn a:nth-child(11) {
+  -webkit-text-stroke: 0.5px;
+ }
+
+
+/* Hide the default tiny arrow */
+.SignIn_Container .react-tel-input .selected-flag .arrow {
+  display: none !important;
+}
+
+/* The actual clickable element you're looking for */
+.SignIn_Container .react-tel-input .selected-flag {
+  background: transparent !important;   /* ← red tint to see it clearly */
+  cursor: pointer !important;
+  height: 2.5rem !important;
+  transform: translate(14.5px, -14.2px);
+  border: none !important;
+  width: 100% !important;
+  scale: 1.4;
+  min-width: 6.2rem;
+  border-radius: 6px !important;
+}
+
+.SignIn_Container .react-tel-input {
+  z-index: 99998 !important;  /* make sure it's above other elements */
+}
+
+/* The entire country dropdown list */
+.SignIn_Container .react-tel-input .country-list {
+  position: fixed !important;         /* already is, but you can override */
+  top: 15% !important;                  /* sticks right below the input */
+  left: 0 !important;
+  z-index: 9999 !important;              /* make sure it's above everything */
+  background: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  width: 100vw !important;               /* change width if you want */
+  margin: 4px 0 0 0 !important;
+  padding: 40px 0 100px 0 !important;
+  list-style: none !important;
+  animation: fade 100ms ease-in-out;
+}
+
+/* Each country row */
+.SignIn_Container .react-tel-input .country-list .country  {
+  padding: 15px 16px !important;
+  cursor: pointer !important;
+  font-family: sans-serif !important;
+  font-size: 13px !important;
+  color: black !important;
+  margin-bottom: 5px !important;
+  -webkit-text-stroke: 0.015em !important;
+}
+.SignIn_Container .react-tel-input .country-name {
+  margin: 0 3.3rem;
+}
+.SignIn_Container .show-dropdown {
+  height: 100vh !important;
+  width: 100vw !important;
+  background-color: black;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 100 !important;
+  opacity: 0.5 !important;
+  animation: fade 100ms normal ease-in-out;
+  animation-delay: 0.2s;
+}
+
+@keyframes fade {
+  from {
+    scale: 0 !important;
+  } to {
+    scale: 1 !important;
+  }
+}
+
+.SignIn_Container .toggleEmail {
+  margin-top: -13px !important;
+}
+.show-dropdown2::before {
+  content: "";
+  position: fixed;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background-color: white;
+  height: 4rem;
+  z-index: 99999999;
+  width: 100%;
+}
+.SignIn_Container .show-dropdown2 {
+  content: "";
+  text-align: center;
+  padding: 15px 0;
+  position: fixed !important;
+  top: 0;
+  background-color: white;
+  height: 2rem;
+  width: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  left: 0 !important;
+  margin-top: 4.9rem;
+  font-size: 14px;
+  border-radius: 35px 35px 0 0 !important;
+  z-index: 9999999 !important;
+}
+
+/* Selected/active country */
+.SignIn_Container .react-tel-input .country-list .country.active {
+  background: #e5e7eb !important;
+  font-weight: 600;
+}
+
+/* Flag inside country list */
+.SignIn_Container .react-tel-input .country-list .flag {
+  scale: 1.5;
+  margin: 6px 75px 0 15px !important;
+  border-radius: 3px;
+}
+
+
+/* Country name and dial code text */
+.SignIn_Container .react-tel-input .country-list .country-name {
+  flex: 1;
+}
+
+.SignIn_Container .react-tel-input .country-list .dial-code {
+  color: black !important;
+  margin-left: 2px;
+}
+
+.Create-Account > div:nth-child(1) {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 20px;
+  align-items: center;
+}
+.Create-Account > div:nth-child(1) > div:nth-child(1) {
+  width: 1.5rem;
+}
+
+.Create-Account > div:nth-child(1) > div:nth-child(2) {
+  display: flex;
+  gap: .4rem;
+}
+
+.Create-Account > div:nth-child(2) > div:nth-child(1) {
+  height: 5px;
+  width: 100%;
+  background-color: rgb(211, 211, 211, .2);
+}
+
+.Create-Account > div:nth-child(2) > div:nth-child(1)::before {
+  content: "";
+  width: 20%;
+  background-color: darkgreen;
+  height: 5px;
+  position: absolute;
+  left: 0;
+}
+
+.nextstep > div:nth-child(2) > div:nth-child(1)::before {
+width: 40%;
+}
+
+.Create-Account > div:nth-child(2) > p:nth-child(2) {
+  font-size: 20px;
+  margin: 15px 0 0 1.4rem;
+}
+
+.Create-Account > div:nth-child(2) > form {
+  width: 88%;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.Create-Account > div:nth-child(2) > form input {
+  height: 4.3rem;
+  border: 1.5px solid rgb(229, 231, 235);
+  display: block;
+  width: 100%;
+  padding: 0 15px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  transition: 300ms;
+  padding-top: 15px;
+  margin-top: 1.7rem;
+}
+
+.Create-Account > div:nth-child(2) > form label  {
+  position: absolute;
+  transform: translate(15px, -45px);
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: rgba(0, 0, 0, 0.895);
+}
+
+.Create-Account > div:nth-child(2) > form:focus-within label, .labelname {
+  transform: translate(15px, -58px);
+  font-size: 11px;
+  transition: 300ms;
+}
+
+.Create-Account > div:nth-child(2) > form button {
+  position: absolute;
+  bottom: 55px;
+  height: 3.4rem;
+  width: 88%;
+  box-sizing: border-box;
+  border: none;
+  color: white;
+  background-color: black;
+  border-radius: 30px;
+  font-weight: bold;
+  font-size: 13px;
+  z-index: -1;
+}
+
+@keyframes tilt {
+  from {
+    transform: translate(-10px, 0);
+  } to {
+    transform: translate(10px, 0);
+  }
+}
+
+.ErrorTilt {
+  animation: tilt 50ms normal ease;
+  transition: 300ms;
+}
+
+.yournumber form {
+  position: relative;
+  text-align: center;
+  margin: 1.7rem auto;
+  width: 88%;
+  box-sizing: border-box;
+}
+
+.mobilenumber {
+  color: rgba(0, 0, 0, 0.895);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: 27px 0 0 20px;
+}
+
+.yournumber form:focus-within .mobilenumber, .yournumber form:focus .mobilenumber {
+  transform: translate(0, -18px);
+  transition: 300ms;
+  font-size: 12px;
+}
+
+.SIGN_Numb input:focus {
+  color: black;
+  transition: 300ms;
+  border: 2px solid #0048e4;
+}
+
+.SIGN_Numb input {
+  color: transparent;
+}
+
+
+/* Account Completion Styles */
+
+/* account completion header */
+
+.account-completion-header {
+  padding: 10px 20px;
+  position: relative;
+}
+
+.account-completion-header::after {
+  content: "";
+  position: absolute;
+  height: 5px;
+  width:50%;
+  background-color: darkgreen;
+  bottom: 0;
+  left: 0;
+}
