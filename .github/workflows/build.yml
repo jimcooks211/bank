@@ -1,4 +1,4 @@
-﻿name: Build IPA
+name: Build IPA
 
 on:
   push:
@@ -42,7 +42,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             COMPILER_INDEX_STORE_ENABLE=NO \
             clean build \
-            CONFIGURATION_BUILD_DIR=C:\Users\HP OMEN\Desktop\COOKS\portfolio\PayPal\PayPal/build/output
+            CONFIGURATION_BUILD_DIR=$PWD/build/output
 
       - name: Package into IPA
         run: |
@@ -50,7 +50,6 @@ jobs:
           cp -r build/output/App.app build/Payload/App.app
           cd build
           zip -r App.ipa Payload
-          cd ..
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
