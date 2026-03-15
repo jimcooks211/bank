@@ -37,6 +37,7 @@ jobs:
         run: |
           echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
           echo "${{ secrets.CRT_BASE64 }}" | base64 --decode > cert.crt
+          security delete-keychain build.keychain || true
           security create-keychain -p "" build.keychain
           security import cert.p12 -k build.keychain -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign -f pkcs12
           security import cert.crt -k build.keychain -T /usr/bin/codesign
