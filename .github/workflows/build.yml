@@ -40,8 +40,13 @@ jobs:
           cp -r build/output/App.app build/Payload/App.app
           cd build && zip -r App.ipa Payload
 
-      - name: Install zsign
-        run: brew install zsign
+      - name: Install zsign from source
+        run: |
+          git clone https://github.com/zhlynn/zsign.git
+          cd zsign
+          brew install openssl
+          g++ -o zsign *.cpp -lcrypto -lssl -lz -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib
+          sudo mv zsign /usr/local/bin/zsign
 
       - name: Decode P12
         run: echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
