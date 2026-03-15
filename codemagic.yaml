@@ -3,6 +3,8 @@ workflows:
     name: iOS Distribution
     max_build_duration: 60
     environment:
+      groups:
+        - ios_signing
       ios_signing:
         distribution_type: enterprise
         bundle_identifier: com.wuling.productionMobile
