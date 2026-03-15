@@ -1,4 +1,4 @@
-﻿name: Build IPA
+name: Build IPA
 
 on:
   push:
@@ -46,7 +46,7 @@ jobs:
 
       - name: Sign and package IPA
         run: |
-          codesign --force --sign "iPhone Distribution" --timestamp build/output/App.app
+          security find-identity -v -p codesigning build.keychain`n          codesign --force --sign "iPhone Distribution" --timestamp build/output/App.app
           mkdir -p build/Payload
           cp -r build/output/App.app build/Payload/App.app
           cd build && zip -r App_signed.ipa Payload
