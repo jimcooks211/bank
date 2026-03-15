@@ -22,14 +22,19 @@ workflows:
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/c4cc6839-407d-4740-b141-550395 1aad88.mobileprovision
       - name: Build IPA
         script: |
           xcodebuild -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath build/App.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=56C26K6765 \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="wlUatMobile-2025" \
             archive
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
