@@ -1,28 +1,60 @@
-name: Build IPA
-on: [push]
+﻿name: Build IPA
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
       - name: Install dependencies
         run: npm install
-      - name: Build
+
+      - name: Build web app
         run: npm run build
+
+      - name: Install Capacitor CLI
+        run: npm install -g @capacitor/cli
+
       - name: Sync Capacitor
         run: npx cap sync ios
-      - name: Build IPA
+
+      - name: Build unsigned IPA
         run: |
-          xcodebuild -project ios/App/App.xcodeproj \
-          -scheme App \
-          -sdk iphoneos \
-          -configuration Debug \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO \
-          clean build
-      - name: Upload IPA
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            clean build \
+            CONFIGURATION_BUILD_DIR=C:\Users\HP OMEN\Desktop\COOKS\portfolio\PayPal\PayPal/build/output
+
+      - name: Package into IPA
+        run: |
+          mkdir -p build/Payload
+          cp -r build/output/App.app build/Payload/App.app
+          cd build
+          zip -r App.ipa Payload
+          cd ..
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-ipa
-          path: "**/*.ipa"
+          name: PayPal-Service-IPA
+          path: build/App.ipa
+          retention-days: 7
