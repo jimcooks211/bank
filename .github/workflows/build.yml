@@ -1,5 +1,4 @@
 ﻿name: Build IPA
-
 on:
   push:
     branches: [main, master]
@@ -31,12 +30,27 @@ jobs:
         run: npx cap sync ios
 
       - name: Build unsigned IPA
-        run: xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphoneos -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO clean build CONFIGURATION_BUILD_DIR=$PWD/build/output
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            clean build \
+            CONFIGURATION_BUILD_DIR=$PWD/build/output
 
       - name: Import P12 into keychain
         run: |
           echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
           echo "${{ secrets.CRT_BASE64 }}" | base64 --decode > cert.crt
+
+          # Delete keychain if it already exists
+          security delete-keychain signing.keychain || true
+
           security create-keychain -p "buildpass" signing.keychain
           security import cert.p12 -k signing.keychain -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign -f pkcs12
           security import cert.crt -k signing.keychain -T /usr/bin/codesign
@@ -58,5 +72,9 @@ jobs:
       - name: Upload Signed IPA
         uses: actions/upload-artifact@v4
         with:
-          name: PayPal-Service-Signed
+          name: App-Signed
           path: build/App_signed.ipa
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain signing.keychain || true
