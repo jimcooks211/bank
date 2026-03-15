@@ -3,8 +3,9 @@ workflows:
     name: iOS Distribution
     max_build_duration: 60
     environment:
-      groups:
-        - ios_signing
+      ios_signing:
+        distribution_type: enterprise
+        bundle_identifier: com.wuling.productionMobile
     scripts:
       - name: Install dependencies
         script: npm install
@@ -12,30 +13,13 @@ workflows:
         script: npm run build
       - name: Sync Capacitor
         script: npx cap sync ios
-      - name: Set up code signing
-        script: |
-          echo $CM_CERTIFICATE | base64 -d > /tmp/cert.p12
-          echo $CM_PROVISIONING_PROFILE | base64 -d > /tmp/profile.mobileprovision
-          security create-keychain -p "build" build.keychain
-          security import /tmp/cert.p12 -k ~/Library/Keychains/build.keychain -P $CM_CERTIFICATE_PASSWORD -A -T /usr/bin/codesign
-          security list-keychains -d user -s ~/Library/Keychains/build.keychain
-          security default-keychain -s ~/Library/Keychains/build.keychain
-          security unlock-keychain -p "build" ~/Library/Keychains/build.keychain
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "build" ~/Library/Keychains/build.keychain
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/c4cc6839-407d-4740-b141-5503951aad88.mobileprovision
-          echo "Profile copied:"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build IPA
         script: |
+          xcode-project use-profiles
           xcodebuild -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath build/App.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM=56C26K6765 \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE="c4cc6839-407d-4740-b141-5503951aad88" \
             archive
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
