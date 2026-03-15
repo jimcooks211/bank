@@ -13,20 +13,20 @@ workflows:
       - name: Sync Capacitor
         script: npx cap sync ios
       - name: Set up code signing
-        script: |
-          echo  | base64 --decode > /tmp/cert.p12
-          echo  | base64 --decode > /tmp/profile.mobileprovision
+        script: |-
+          echo "\" | base64 --decode > /tmp/cert.p12
+          echo "\" | base64 --decode > /tmp/profile.mobileprovision
           security create-keychain -p "" build.keychain
-          security import /tmp/cert.p12 -k build.keychain -P "" -A
+          security import /tmp/cert.p12 -k build.keychain -P "\" -A
           security list-keychains -s build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings build.keychain
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/c4cc6839-407d-4740-b141-550395 1aad88.mobileprovision
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/c4cc6839-407d-4740-b141-5503951aad88.mobileprovision
       - name: Build IPA
-        script: |
+        script: |-
           xcodebuild -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
