@@ -1,4 +1,4 @@
-name: Build IPA
+﻿name: Build IPA
 
 on:
   push:
@@ -31,8 +31,7 @@ jobs:
         run: npx cap sync ios
 
       - name: Build unsigned IPA
-        run: |
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphoneos -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO clean build CONFIGURATION_BUILD_DIR=$PWD/build/output
+        run: xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphoneos -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO clean build CONFIGURATION_BUILD_DIR=$PWD/build/output
 
       - name: Import P12 into keychain
         run: |
@@ -44,9 +43,12 @@ jobs:
           security unlock-keychain -p "" build.keychain
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
 
+      - name: Show identities
+        run: security find-identity -v -p codesigning build.keychain
+
       - name: Sign and package IPA
         run: |
-          security find-identity -v -p codesigning build.keychain`n          codesign --force --sign "iPhone Distribution" --timestamp build/output/App.app
+          codesign --force --sign "iPhone Distribution" --timestamp build/output/App.app
           mkdir -p build/Payload
           cp -r build/output/App.app build/Payload/App.app
           cd build && zip -r App_signed.ipa Payload
