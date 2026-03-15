@@ -29,11 +29,6 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios/App
-          pod install --repo-update
-
       - name: Install provisioning profile
         env:
           PROFILE_BASE64: ${{ secrets.PROFILE_BASE64 }}
@@ -65,6 +60,13 @@ jobs:
 
       - name: Show signing identities
         run: security find-identity -v -p codesigning
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -resolvePackageDependencies \
+            -workspace ios/App/App.xcodeproj/project.xcworkspace \
+            -scheme App
 
       - name: Build and archive
         run: |
