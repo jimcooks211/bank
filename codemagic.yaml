@@ -23,15 +23,11 @@ workflows:
           security unlock-keychain -p "build" ~/Library/Keychains/build.keychain
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "build" ~/Library/Keychains/build.keychain
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-          PROFILE_UUID=
-          echo "Profile UUID: "
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/.mobileprovision
-          ls ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/c4cc6839-407d-4740-b141-550395 1aad88.mobileprovision
+          echo "Profile copied successfully"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build IPA
         script: |
-          PROFILE_UUID=
-          echo "Using profile UUID: "
           xcodebuild -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
@@ -39,7 +35,7 @@ workflows:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=56C26K6765 \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE="c4cc6839-407d-4740-b141-550395 1aad88" \
             archive
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
