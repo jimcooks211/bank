@@ -34,24 +34,22 @@ jobs:
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphoneos -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO clean build CONFIGURATION_BUILD_DIR=$PWD/build/output
 
-      - name: Package into IPA
+      - name: Import P12 into keychain
         run: |
+          echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
+          security create-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "${{ secrets.P12_PASSWORD }}" -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      - name: Sign and package IPA
+        run: |
+          codesign --force --sign "iPhone Distribution" --timestamp build/output/App.app
           mkdir -p build/Payload
           cp -r build/output/App.app build/Payload/App.app
-          cd build && zip -r App.ipa Payload
-
-      - name: Install zsign from source
-        run: |
-          git clone https://github.com/zhlynn/zsign.git
-          cd zsign
-          g++ -o zsign src/*.cpp -I. -Isrc -lcrypto -lssl -lz -I/usr/local/opt/openssl@3/include -L/usr/local/opt/openssl@3/lib
-          sudo mv zsign /usr/local/bin/zsign
-
-      - name: Decode P12
-        run: echo "${{ secrets.P12_BASE64 }}" | base64 --decode > cert.p12
-
-      - name: Sign IPA
-        run: zsign -k cert.p12 -p "${{ secrets.P12_PASSWORD }}" -o build/App_signed.ipa build/App.ipa
+          cd build && zip -r App_signed.ipa Payload
 
       - name: Upload Signed IPA
         uses: actions/upload-artifact@v4
