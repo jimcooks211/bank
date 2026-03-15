@@ -1,0 +1,33 @@
+workflows:
+  ios-distribution:
+    name: iOS Distribution
+    max_build_duration: 60
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.wuling.productionMobile
+      vars:
+        BUNDLE_ID: "com.wuling.productionMobile"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Build web app
+        script: npm run build
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Build IPA
+        script: |
+          xcode-project use-profiles
+          xcodebuild -project "" \
+            -scheme "" \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist /Users/builder/export_options.plist
+    artifacts:
+      - build/ipa/*.ipa
