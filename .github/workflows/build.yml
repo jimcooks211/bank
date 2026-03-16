@@ -6,9 +6,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -37,17 +40,8 @@ jobs:
           security create-keychain -p "buildpass" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
-
-          # Import Apple WWDR G3 — required for DVT CMS signature verification
           curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o /tmp/wwdr_g3.cer
           security import /tmp/wwdr_g3.cer -k $KEYCHAIN_PATH
-
-          # Also import WWDR G4 and G6 for good measure
-          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer -o /tmp/wwdr_g4.cer
-          security import /tmp/wwdr_g4.cer -k $KEYCHAIN_PATH 2>/dev/null || true
-          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG6.cer -o /tmp/wwdr_g6.cer
-          security import /tmp/wwdr_g6.cer -k $KEYCHAIN_PATH 2>/dev/null || true
-
           security import cert.p12 -k $KEYCHAIN_PATH \
             -P "$P12_PASSWORD" \
             -T /usr/bin/codesign \
@@ -58,7 +52,7 @@ jobs:
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s -k "buildpass" $KEYCHAIN_PATH
-          rm -f cert.p12 /tmp/wwdr_g3.cer /tmp/wwdr_g4.cer /tmp/wwdr_g6.cer
+          rm -f cert.p12 /tmp/wwdr_g3.cer
 
       - name: Install provisioning profile
         env:
