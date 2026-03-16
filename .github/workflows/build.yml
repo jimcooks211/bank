@@ -74,11 +74,9 @@ jobs:
             --export_method enterprise \
             --export_options ios/App/ExportOptions.plist \
             --codesigning_identity "iPhone Distribution: Wuling Power Corporation" \
-            --provisioning_profile_path wulingProductionMobile.mobileprovision \
+            --provisioning_profile "com.wuling.productionMobile" => "wulingProductionMobile" \
             --output_directory $RUNNER_TEMP/ipa \
-            --output_name App \
-            --silent false \
-            --skip_profile_detection false
+            --output_name App
 
       - name: Prepare OTA folder
         run: |
