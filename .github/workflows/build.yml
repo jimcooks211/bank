@@ -29,22 +29,27 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Fix WWDR certificates
+      - name: Fix WWDR G3 exact fix-wwdr.sh approach
         run: |
-          # Delete all existing WWDR certs (same logic as fix-wwdr.sh)
+          # Step 1: Delete ALL existing WWDR certs from every keychain
           security find-certificate -c "Apple Worldwide Developer Relations Certification Authority" -a -Z \
             | awk '/SHA-1/{system("security delete-certificate -Z "$NF)}' 2>/dev/null || true
 
-          # Install G3 (matches your profile's cert chain)
+          # Step 2: Download fresh G3
           TEMP=$(mktemp -d)
-          curl -s "https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer" > "$TEMP/AppleWWDRCAG3.cer"
+          curl -s "https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer" -o "$TEMP/AppleWWDRCAG3.cer"
+
+          # Step 3: Add to login keychain (what DVT reads) — exact same call as fix-wwdr.sh
+          security add-certificates "$TEMP/AppleWWDRCAG3.cer"
+
+          # Step 4: Also trust at system level
           sudo security add-trusted-cert -d -r trustAsRoot \
             -k /Library/Keychains/System.keychain "$TEMP/AppleWWDRCAG3.cer"
-          security add-certificates "$TEMP/AppleWWDRCAG3.cer"
+
           rm -rf "$TEMP"
 
-          echo "=== WWDR certs after fix ==="
-          security find-certificate -c "Apple Worldwide Developer Relations" -a -Z | grep -E "SHA-1|alis"
+          echo "=== WWDR certs now present ==="
+          security find-certificate -c "Apple Worldwide Developer Relations" -a -Z
 
       - name: Import certificate into keychain
         env:
@@ -80,23 +85,18 @@ jobs:
             ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
           cp wulingProductionMobile.mobileprovision \
             ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
-          security cms -D \
-            -i ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
-            | grep -A1 "UUID"
 
-      - name: Patch pbxproj and verify
+      - name: Patch pbxproj
         run: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' "$PBXPROJ"
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
           sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "iPhone Distribution";/g' "$PBXPROJ"
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 56C26K6765;/g' "$PBXPROJ"
           sed -i '' "s/DEVELOPMENT_TEAM = \"[^\"]*\";/DEVELOPMENT_TEAM = 56C26K6765;/g" "$PBXPROJ"
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
           if ! grep -q "DEVELOPMENT_TEAM = 56C26K6765" "$PBXPROJ"; then
             sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\n\t\t\t\tDEVELOPMENT_TEAM = 56C26K6765;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
           fi
-          grep -E "CODE_SIGN_STYLE|ProvisioningStyle|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY" "$PBXPROJ" | sort -u
 
       - name: Show signing identities
         run: security find-identity -v -p codesigning
