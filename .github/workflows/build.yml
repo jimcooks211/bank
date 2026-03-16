@@ -110,7 +110,7 @@ jobs:
           mkdir -p ota
           cp $RUNNER_TEMP/App.ipa ota/app.ipa
           cp manifest.plist ota/manifest.plist
-          cp index.html ota/ 2>/dev/null || true
+          cp dist/index.html ota/ 2>/dev/null || true
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
