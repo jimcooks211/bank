@@ -26,11 +26,6 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios/App
-          pod install --repo-update
-
       - name: Import certificate into keychain
         env:
           P12_BASE64:   ${{ secrets.P12_BASE64 }}
