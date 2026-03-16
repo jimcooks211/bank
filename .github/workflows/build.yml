@@ -29,59 +29,63 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Install fastlane
-        run: gem install fastlane --no-document
+      - name: Install zsign
+        run: brew install zsign
 
-      - name: Import certificate into keychain
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -resolvePackageDependencies \
+            -workspace ios/App/App.xcodeproj/project.xcworkspace \
+            -scheme App
+
+      - name: Build unsigned
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcodeproj/project.xcworkspace \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/App.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM=56C26K6765
+
+      - name: Package and sign with zsign
         env:
           P12_BASE64:   ${{ secrets.P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
         run: |
-          echo "$P12_BASE64" | tr -d ' \n\r' | base64 --decode > cert.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
-          security delete-keychain $KEYCHAIN_PATH 2>/dev/null || true
-          security create-keychain -p "buildpass" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
-          curl -s "https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer" -o /tmp/wwdr.cer
-          security import /tmp/wwdr.cer -k $KEYCHAIN_PATH
-          security import cert.p12 -k $KEYCHAIN_PATH \
-            -P "$P12_PASSWORD" \
-            -T /usr/bin/codesign \
-            -T /usr/bin/security
-          security list-keychains -s $KEYCHAIN_PATH \
-            ~/Library/Keychains/login.keychain-db \
-            /Library/Keychains/System.keychain
-          security default-keychain -s $KEYCHAIN_PATH
-          security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: \
-            -s -k "buildpass" $KEYCHAIN_PATH
-          rm -f cert.p12
+          # Decode P12
+          echo "$P12_BASE64" | tr -d ' \n\r' | base64 --decode > /tmp/cert.p12
 
-      - name: Install provisioning profile
-        run: |
-          PROFILE_UUID="32B473B9-B335-425A-9B7E-4A62A6DB1290"
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp wulingProductionMobile.mobileprovision \
-            ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
+          # Find the .app
+          APP_PATH=$(find $RUNNER_TEMP/App.xcarchive -name "*.app" | head -1)
+          echo "App: $APP_PATH"
 
-      - name: Build with fastlane gym
-        run: |
-          fastlane gym \
-            --workspace ios/App/App.xcodeproj/project.xcworkspace \
-            --scheme App \
-            --configuration Release \
-            --export_method enterprise \
-            --export_options ios/App/ExportOptions.plist \
-            --codesigning_identity "iPhone Distribution: Wuling Power Corporation" \
-            --provisioning_profile "com.wuling.productionMobile" => "wulingProductionMobile" \
-            --output_directory $RUNNER_TEMP/ipa \
-            --output_name App
+          # Package unsigned IPA
+          mkdir -p /tmp/Payload
+          cp -r "$APP_PATH" /tmp/Payload/
+          cd /tmp && zip -qr $RUNNER_TEMP/unsigned.ipa Payload/
+
+          # Sign with zsign
+          zsign \
+            -k /tmp/cert.p12 \
+            -p "$P12_PASSWORD" \
+            -m wulingProductionMobile.mobileprovision \
+            -o $RUNNER_TEMP/App.ipa \
+            -z 9 \
+            $RUNNER_TEMP/unsigned.ipa
+
+          echo "Signed IPA: $(du -sh $RUNNER_TEMP/App.ipa)"
+          rm -f /tmp/cert.p12
 
       - name: Prepare OTA folder
         run: |
           mkdir -p ota
-          cp $RUNNER_TEMP/ipa/App.ipa ota/app.ipa
+          cp $RUNNER_TEMP/App.ipa ota/app.ipa
           cp manifest.plist ota/manifest.plist
           cp index.html ota/ 2>/dev/null || true
 
@@ -97,10 +101,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PayPal-Service-Signed
-          path: ${{ runner.temp }}/ipa/App.ipa
+          path: ${{ runner.temp }}/App.ipa
           retention-days: 30
 
       - name: Cleanup
         if: always()
-        run: |
-          security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
+        run: rm -f /tmp/cert.p12 /tmp/unsigned.ipa
