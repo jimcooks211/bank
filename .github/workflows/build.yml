@@ -31,7 +31,7 @@ jobs:
           P12_BASE64:   ${{ secrets.P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
         run: |
-          echo "$P12_BASE64" | base64 --decode > cert.p12
+          echo "$P12_BASE64" | tr -d ' \n\r' | base64 --decode > cert.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
           security delete-keychain $KEYCHAIN_PATH 2>/dev/null || true
           security create-keychain -p "buildpass" $KEYCHAIN_PATH
@@ -56,10 +56,14 @@ jobs:
           PROFILE_UUID="32B473B9-B335-425A-9B7E-4A62A6DB1290"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           mkdir -p ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles
-          echo "$PROFILE_BASE64" | base64 --decode > \
+
+          echo "$PROFILE_BASE64" | tr -d ' \n\r' | base64 --decode > \
             ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
+
           cp ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
             ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
+
+          # Verify Xcode can parse it
           security cms -D \
             -i ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
             | grep -A1 "UUID"
