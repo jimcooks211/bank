@@ -38,8 +38,8 @@ jobs:
             ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
           echo "--- Profile size ---"
           wc -c ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
-          echo "--- Profile decoded ---"
-          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision | grep -A2 "UUID\|<key>Name\|TeamIdentifier\|ExpirationDate\|application-identifier" || echo "cms decode failed"
+          echo "--- Full profile dump ---"
+          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
 
       - name: Import certificate into keychain
         env:
