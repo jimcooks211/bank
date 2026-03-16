@@ -31,7 +31,9 @@ jobs:
 
       - name: Build zsign from source
         run: |
+          brew install minizip
           OPENSSL=$(brew --prefix openssl)
+          MINIZIP=$(brew --prefix minizip)
           git clone https://github.com/zhlynn/zsign.git /tmp/zsign
           cd /tmp/zsign
           g++ -std=c++17 -O3 \
@@ -51,10 +53,13 @@ jobs:
             src/common/sha.cpp \
             src/common/timer.cpp \
             src/common/util.cpp \
-            -I$OPENSSL/include \
             -Isrc \
+            -Isrc/common \
+            -I$OPENSSL/include \
+            -I$MINIZIP/include \
             -L$OPENSSL/lib \
-            -lssl -lcrypto -lz \
+            -L$MINIZIP/lib \
+            -lssl -lcrypto -lz -lminizip \
             -o /usr/local/bin/zsign
           zsign 2>&1 | head -3 || true
 
