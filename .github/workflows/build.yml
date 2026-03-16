@@ -37,6 +37,17 @@ jobs:
           security create-keychain -p "buildpass" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
+
+          # Import Apple WWDR G3 — required for DVT CMS signature verification
+          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o /tmp/wwdr_g3.cer
+          security import /tmp/wwdr_g3.cer -k $KEYCHAIN_PATH
+
+          # Also import WWDR G4 and G6 for good measure
+          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer -o /tmp/wwdr_g4.cer
+          security import /tmp/wwdr_g4.cer -k $KEYCHAIN_PATH 2>/dev/null || true
+          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG6.cer -o /tmp/wwdr_g6.cer
+          security import /tmp/wwdr_g6.cer -k $KEYCHAIN_PATH 2>/dev/null || true
+
           security import cert.p12 -k $KEYCHAIN_PATH \
             -P "$P12_PASSWORD" \
             -T /usr/bin/codesign \
@@ -47,7 +58,7 @@ jobs:
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s -k "buildpass" $KEYCHAIN_PATH
-          rm -f cert.p12
+          rm -f cert.p12 /tmp/wwdr_g3.cer /tmp/wwdr_g4.cer /tmp/wwdr_g6.cer
 
       - name: Install provisioning profile
         env:
@@ -71,20 +82,11 @@ jobs:
       - name: Patch pbxproj for manual signing
         run: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
-
-          # Switch to Manual signing
           sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' "$PBXPROJ"
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
-
-          # Set team
           sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 56C26K6765;/g' "$PBXPROJ"
           sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = 56C26K6765;/g' "$PBXPROJ"
-
-          # Set provisioning profile specifier
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
-
-          echo "=== Manual signing check ==="
-          grep -E "CODE_SIGN_STYLE|ProvisioningStyle|PROVISIONING_PROFILE|DEVELOPMENT_TEAM" "$PBXPROJ" | sort -u
 
       - name: Show signing identities
         run: security find-identity -v -p codesigning
