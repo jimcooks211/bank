@@ -1,4 +1,4 @@
-name: Build IPA
+﻿name: Build IPA
 on:
   push:
     branches: [main, master]
@@ -132,3 +132,4 @@ jobs:
         if: always()
         run: rm -f /tmp/cert.p12 $RUNNER_TEMP/unsigned.ipa
         
+
