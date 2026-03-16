@@ -98,7 +98,7 @@ jobs:
           zsign \
             -k /tmp/cert.p12 \
             -p "$P12_PASSWORD" \
-            -m wulingProductionMobile.mobileprovision \
+            -m $GITHUB_WORKSPACE/wulingProductionMobile.mobileprovision \
             -o $RUNNER_TEMP/App.ipa \
             -z 9 \
             $RUNNER_TEMP/unsigned.ipa
@@ -130,3 +130,4 @@ jobs:
       - name: Cleanup
         if: always()
         run: rm -f /tmp/cert.p12 $RUNNER_TEMP/unsigned.ipa
+        
