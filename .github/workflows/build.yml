@@ -29,27 +29,8 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Fix WWDR G3 exact fix-wwdr.sh approach
-        run: |
-          # Step 1: Delete ALL existing WWDR certs from every keychain
-          security find-certificate -c "Apple Worldwide Developer Relations Certification Authority" -a -Z \
-            | awk '/SHA-1/{system("security delete-certificate -Z "$NF)}' 2>/dev/null || true
-
-          # Step 2: Download fresh G3
-          TEMP=$(mktemp -d)
-          curl -s "https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer" -o "$TEMP/AppleWWDRCAG3.cer"
-
-          # Step 3: Add to login keychain (what DVT reads) — exact same call as fix-wwdr.sh
-          security add-certificates "$TEMP/AppleWWDRCAG3.cer"
-
-          # Step 4: Also trust at system level
-          sudo security add-trusted-cert -d -r trustAsRoot \
-            -k /Library/Keychains/System.keychain "$TEMP/AppleWWDRCAG3.cer"
-
-          rm -rf "$TEMP"
-
-          echo "=== WWDR certs now present ==="
-          security find-certificate -c "Apple Worldwide Developer Relations" -a -Z
+      - name: Install fastlane
+        run: gem install fastlane --no-document
 
       - name: Import certificate into keychain
         env:
@@ -62,11 +43,12 @@ jobs:
           security create-keychain -p "buildpass" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
+          curl -s "https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer" -o /tmp/wwdr.cer
+          security import /tmp/wwdr.cer -k $KEYCHAIN_PATH
           security import cert.p12 -k $KEYCHAIN_PATH \
             -P "$P12_PASSWORD" \
             -T /usr/bin/codesign \
-            -T /usr/bin/security \
-            -T /usr/bin/productbuild
+            -T /usr/bin/security
           security list-keychains -s $KEYCHAIN_PATH \
             ~/Library/Keychains/login.keychain-db \
             /Library/Keychains/System.keychain
@@ -80,61 +62,28 @@ jobs:
         run: |
           PROFILE_UUID="32B473B9-B335-425A-9B7E-4A62A6DB1290"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          mkdir -p ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles
           cp wulingProductionMobile.mobileprovision \
             ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
-          cp wulingProductionMobile.mobileprovision \
-            ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
 
-      - name: Patch pbxproj
+      - name: Build with fastlane gym
         run: |
-          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
-          sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' "$PBXPROJ"
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
-          sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "iPhone Distribution";/g' "$PBXPROJ"
-          sed -i '' "s/DEVELOPMENT_TEAM = \"[^\"]*\";/DEVELOPMENT_TEAM = 56C26K6765;/g" "$PBXPROJ"
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
-          if ! grep -q "DEVELOPMENT_TEAM = 56C26K6765" "$PBXPROJ"; then
-            sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\n\t\t\t\tDEVELOPMENT_TEAM = 56C26K6765;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
-          fi
-
-      - name: Show signing identities
-        run: security find-identity -v -p codesigning
-
-      - name: Resolve Swift packages
-        run: |
-          xcodebuild \
-            -resolvePackageDependencies \
-            -workspace ios/App/App.xcodeproj/project.xcworkspace \
-            -scheme App
-
-      - name: Build and archive
-        run: |
-          xcodebuild \
-            -workspace ios/App/App.xcodeproj/project.xcworkspace \
-            -scheme App \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            archive \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="iPhone Distribution: Wuling Power Corporation" \
-            PROVISIONING_PROFILE_SPECIFIER="wulingProductionMobile" \
-            PROVISIONING_PROFILE="32B473B9-B335-425A-9B7E-4A62A6DB1290" \
-            DEVELOPMENT_TEAM=56C26K6765
-
-      - name: Export IPA
-        run: |
-          xcodebuild \
-            -exportArchive \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            -exportOptionsPlist ios/App/ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/ipa
+          fastlane gym \
+            --workspace ios/App/App.xcodeproj/project.xcworkspace \
+            --scheme App \
+            --configuration Release \
+            --export_method enterprise \
+            --export_options ios/App/ExportOptions.plist \
+            --codesigning_identity "iPhone Distribution: Wuling Power Corporation" \
+            --provisioning_profile_path wulingProductionMobile.mobileprovision \
+            --output_directory $RUNNER_TEMP/ipa \
+            --output_name App \
+            --silent false \
+            --skip_profile_detection false
 
       - name: Prepare OTA folder
         run: |
           mkdir -p ota
-          cp $RUNNER_TEMP/ipa/*.ipa ota/app.ipa
+          cp $RUNNER_TEMP/ipa/App.ipa ota/app.ipa
           cp manifest.plist ota/manifest.plist
           cp index.html ota/ 2>/dev/null || true
 
@@ -150,7 +99,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PayPal-Service-Signed
-          path: ${{ runner.temp }}/ipa/*.ipa
+          path: ${{ runner.temp }}/ipa/App.ipa
           retention-days: 30
 
       - name: Cleanup
