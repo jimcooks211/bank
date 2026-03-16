@@ -32,15 +32,9 @@ jobs:
       - name: Trust Apple WWDR certs in system keychain
         run: |
           curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o /tmp/wwdr_g3.cer
-          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer -o /tmp/wwdr_g4.cer
-          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG6.cer -o /tmp/wwdr_g6.cer
           sudo security add-trusted-cert -d -r trustAsRoot \
             -k /Library/Keychains/System.keychain /tmp/wwdr_g3.cer
-          sudo security add-trusted-cert -d -r trustAsRoot \
-            -k /Library/Keychains/System.keychain /tmp/wwdr_g4.cer 2>/dev/null || true
-          sudo security add-trusted-cert -d -r trustAsRoot \
-            -k /Library/Keychains/System.keychain /tmp/wwdr_g6.cer 2>/dev/null || true
-          rm -f /tmp/wwdr_g3.cer /tmp/wwdr_g4.cer /tmp/wwdr_g6.cer
+          rm -f /tmp/wwdr_g3.cer
 
       - name: Import certificate into keychain
         env:
@@ -86,14 +80,28 @@ jobs:
             -i ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
             | grep -A1 "UUID"
 
-      - name: Patch pbxproj for manual signing
+      - name: Patch pbxproj and verify
         run: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+
+          # Show state BEFORE patch (cap sync may have reset it)
+          echo "=== BEFORE patch ==="
+          grep -E "CODE_SIGN_STYLE|ProvisioningStyle|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY" "$PBXPROJ" | sort -u
+
           sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' "$PBXPROJ"
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
+          sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "iPhone Distribution";/g' "$PBXPROJ"
           sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 56C26K6765;/g' "$PBXPROJ"
-          sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = 56C26K6765;/g' "$PBXPROJ"
+          sed -i '' "s/DEVELOPMENT_TEAM = \"[^\"]*\";/DEVELOPMENT_TEAM = 56C26K6765;/g" "$PBXPROJ"
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
+
+          # Add missing keys if still absent
+          if ! grep -q "DEVELOPMENT_TEAM = 56C26K6765" "$PBXPROJ"; then
+            sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\n\t\t\t\tDEVELOPMENT_TEAM = 56C26K6765;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
+          fi
+
+          echo "=== AFTER patch ==="
+          grep -E "CODE_SIGN_STYLE|ProvisioningStyle|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY" "$PBXPROJ" | sort -u
 
       - name: Show signing identities
         run: security find-identity -v -p codesigning
