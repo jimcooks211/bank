@@ -1,4 +1,4 @@
-name: Build IPA
+﻿name: Build IPA
 on:
   push:
     branches: [main, master]
@@ -23,11 +23,13 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Install Capacitor CLI
-        run: npm install -g @capacitor/cli
-
       - name: Sync Capacitor
         run: npx cap sync ios
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios/App
+          pod install --repo-update
 
       - name: Import certificate into keychain
         env:
@@ -44,82 +46,28 @@ jobs:
             -P "$P12_PASSWORD" \
             -T /usr/bin/codesign \
             -T /usr/bin/security \
-            -T /usr/bin/openssl
+            -T /usr/bin/productbuild
           security list-keychains -s $KEYCHAIN_PATH ~/Library/Keychains/login.keychain-db
           security default-keychain -s $KEYCHAIN_PATH
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s -k "buildpass" $KEYCHAIN_PATH
+          rm -f cert.p12
 
-      - name: Install and re-sign provisioning profile with binary plist
+      - name: Install provisioning profile
         env:
           PROFILE_BASE64: ${{ secrets.PROFILE_BASE64 }}
-          P12_BASE64:     ${{ secrets.P12_BASE64 }}
-          P12_PASSWORD:   ${{ secrets.P12_PASSWORD }}
         run: |
           PROFILE_UUID="32B473B9-B335-425A-9B7E-4A62A6DB1290"
-
-          # Decode original profile
-          echo "$PROFILE_BASE64" | base64 --decode > /tmp/original.mobileprovision
-
-          # Extract inner XML plist
-          security cms -D -i /tmp/original.mobileprovision > /tmp/profile.plist
-
-          # Convert XML plist to binary plist — this is what Xcode expects
-          plutil -convert binary1 /tmp/profile.plist -o /tmp/profile_binary.plist
-
-          # Extract cert and key from p12 for re-signing
-          echo "$P12_BASE64" | base64 --decode > /tmp/sign.p12
-          openssl pkcs12 -in /tmp/sign.p12 -nokeys -clcerts \
-            -out /tmp/sign_cert.pem -passin pass:"$P12_PASSWORD" -legacy 2>/dev/null || \
-          openssl pkcs12 -in /tmp/sign.p12 -nokeys -clcerts \
-            -out /tmp/sign_cert.pem -passin pass:"$P12_PASSWORD"
-
-          openssl pkcs12 -in /tmp/sign.p12 -nocerts -nodes \
-            -out /tmp/sign_key.pem -passin pass:"$P12_PASSWORD" -legacy 2>/dev/null || \
-          openssl pkcs12 -in /tmp/sign.p12 -nocerts -nodes \
-            -out /tmp/sign_key.pem -passin pass:"$P12_PASSWORD"
-
-          # Download Apple WWDR G3
-          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer \
-            -o /tmp/wwdr.cer
-          openssl x509 -in /tmp/wwdr.cer -inform DER -out /tmp/wwdr.pem
-
-          # Re-sign with binary plist content
-          openssl smime -sign \
-            -md sha256 \
-            -binary \
-            -in /tmp/profile_binary.plist \
-            -out /tmp/resigned.mobileprovision \
-            -signer /tmp/sign_cert.pem \
-            -inkey /tmp/sign_key.pem \
-            -certfile /tmp/wwdr.pem \
-            -outform DER \
-            -nodetach
-
-          # Verify
-          openssl smime -verify \
-            -in /tmp/resigned.mobileprovision \
-            -inform DER \
-            -noverify \
-            -out /dev/null && echo "✅ Re-signed profile verified"
-
-          # Install to both profile locations
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           mkdir -p ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles
-
-          cp /tmp/resigned.mobileprovision \
+          echo "$PROFILE_BASE64" | base64 --decode > \
             ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
-          cp /tmp/resigned.mobileprovision \
+          cp ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
             ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
-
-          # Confirm Xcode can now read the UUID
           security cms -D \
             -i ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
             | grep -A1 "UUID"
-
-          # Cleanup
-          rm -f /tmp/sign.p12 /tmp/sign_cert.pem /tmp/sign_key.pem
 
       - name: Show signing identities
         run: security find-identity -v -p codesigning
@@ -143,6 +91,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="iPhone Distribution: Wuling Power Corporation" \
             PROVISIONING_PROFILE_SPECIFIER="wulingProductionMobile" \
+            PROVISIONING_PROFILE="32B473B9-B335-425A-9B7E-4A62A6DB1290" \
             DEVELOPMENT_TEAM=56C26K6765
 
       - name: Export IPA
@@ -166,7 +115,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./ota
           publish_branch: gh-pages
-          keep_files: false
+          force_orphan: true
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -179,4 +128,4 @@ jobs:
         if: always()
         run: |
           security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
-          rm -f cert.p12 /tmp/resigned.mobileprovision /tmp/original.mobileprovision
+          rm -f /tmp/original.mobileprovision
