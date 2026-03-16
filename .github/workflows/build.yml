@@ -29,6 +29,19 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
+      - name: Trust Apple WWDR certs in system keychain
+        run: |
+          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o /tmp/wwdr_g3.cer
+          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer -o /tmp/wwdr_g4.cer
+          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG6.cer -o /tmp/wwdr_g6.cer
+          sudo security add-trusted-cert -d -r trustAsRoot \
+            -k /Library/Keychains/System.keychain /tmp/wwdr_g3.cer
+          sudo security add-trusted-cert -d -r trustAsRoot \
+            -k /Library/Keychains/System.keychain /tmp/wwdr_g4.cer 2>/dev/null || true
+          sudo security add-trusted-cert -d -r trustAsRoot \
+            -k /Library/Keychains/System.keychain /tmp/wwdr_g6.cer 2>/dev/null || true
+          rm -f /tmp/wwdr_g3.cer /tmp/wwdr_g4.cer /tmp/wwdr_g6.cer
+
       - name: Import certificate into keychain
         env:
           P12_BASE64:   ${{ secrets.P12_BASE64 }}
@@ -40,19 +53,19 @@ jobs:
           security create-keychain -p "buildpass" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "buildpass" $KEYCHAIN_PATH
-          curl -s https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o /tmp/wwdr_g3.cer
-          security import /tmp/wwdr_g3.cer -k $KEYCHAIN_PATH
           security import cert.p12 -k $KEYCHAIN_PATH \
             -P "$P12_PASSWORD" \
             -T /usr/bin/codesign \
             -T /usr/bin/security \
             -T /usr/bin/productbuild
-          security list-keychains -s $KEYCHAIN_PATH ~/Library/Keychains/login.keychain-db
+          security list-keychains -s $KEYCHAIN_PATH \
+            ~/Library/Keychains/login.keychain-db \
+            /Library/Keychains/System.keychain
           security default-keychain -s $KEYCHAIN_PATH
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s -k "buildpass" $KEYCHAIN_PATH
-          rm -f cert.p12 /tmp/wwdr_g3.cer
+          rm -f cert.p12
 
       - name: Install provisioning profile
         env:
