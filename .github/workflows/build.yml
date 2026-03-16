@@ -80,11 +80,16 @@ jobs:
             -i ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
             | grep -A1 "UUID"
 
+      - name: Validate provisioning profile
+        run: |
+          PROFILE=~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
+          echo "File size: $(wc -c < "$PROFILE") bytes"
+          security cms -D -i "$PROFILE" | grep -E "Name|UUID|TeamIdentifier|ExpirationDate"
+
       - name: Patch pbxproj and verify
         run: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
 
-          # Show state BEFORE patch (cap sync may have reset it)
           echo "=== BEFORE patch ==="
           grep -E "CODE_SIGN_STYLE|ProvisioningStyle|PROVISIONING_PROFILE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY" "$PBXPROJ" | sort -u
 
@@ -95,7 +100,6 @@ jobs:
           sed -i '' "s/DEVELOPMENT_TEAM = \"[^\"]*\";/DEVELOPMENT_TEAM = 56C26K6765;/g" "$PBXPROJ"
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
 
-          # Add missing keys if still absent
           if ! grep -q "DEVELOPMENT_TEAM = 56C26K6765" "$PBXPROJ"; then
             sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\n\t\t\t\tDEVELOPMENT_TEAM = 56C26K6765;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
           fi
