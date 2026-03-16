@@ -56,34 +56,35 @@ jobs:
           PROFILE_UUID="32B473B9-B335-425A-9B7E-4A62A6DB1290"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           mkdir -p ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles
-
-          echo "$PROFILE_BASE64" | tr -d ' \n\r' | base64 --decode > \
-            ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
-
+          python3 -c "
+          import base64, os
+          data = os.environ['PROFILE_BASE64'].replace(' ','').replace('\n','').replace('\r','')
+          with open(os.path.expanduser('~/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision'), 'wb') as f:
+              f.write(base64.b64decode(data))
+          "
           cp ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
             ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
+          security cms -D \
+            -i ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision \
+            | grep -A1 "UUID"
 
-      - name: Debug profile
-        env:
-          PROFILE_BASE64: ${{ secrets.PROFILE_BASE64 }}
+      - name: Patch pbxproj for manual signing
         run: |
-          PROFILE_UUID="32B473B9-B335-425A-9B7E-4A62A6DB1290"
-          PROF=~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
 
-          echo "=== file size ==="
-          wc -c "$PROF"
+          # Switch to Manual signing
+          sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' "$PBXPROJ"
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
 
-          echo "=== file type ==="
-          file "$PROF"
+          # Set team
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 56C26K6765;/g' "$PBXPROJ"
+          sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = 56C26K6765;/g' "$PBXPROJ"
 
-          echo "=== hex header (first 32 bytes) ==="
-          xxd "$PROF" | head -2
+          # Set provisioning profile specifier
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "wulingProductionMobile";/g' "$PBXPROJ"
 
-          echo "=== security cms decode ==="
-          security cms -D -i "$PROF" | grep -E "UUID|Name|TeamIdentifier" | head -10 || echo "FAILED to decode"
-
-          echo "=== secret length ==="
-          echo "$PROFILE_BASE64" | tr -d ' \n\r' | wc -c
+          echo "=== Manual signing check ==="
+          grep -E "CODE_SIGN_STYLE|ProvisioningStyle|PROVISIONING_PROFILE|DEVELOPMENT_TEAM" "$PBXPROJ" | sort -u
 
       - name: Show signing identities
         run: security find-identity -v -p codesigning
@@ -144,4 +145,3 @@ jobs:
         if: always()
         run: |
           security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
-          rm -f /tmp/original.mobileprovision
