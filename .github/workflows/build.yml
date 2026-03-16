@@ -29,8 +29,22 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Install zsign
-        run: brew install zsign
+      - name: Build zsign from source
+        run: |
+          brew install openssl
+          git clone https://github.com/zhlynn/zsign.git /tmp/zsign
+          cd /tmp/zsign
+          OPENSSL=$(brew --prefix openssl)
+          g++ -std=c++11 -O3 \
+            common/json.cpp common/base64.cpp common/sha.cpp \
+            common/certutil.cpp common/zip.cpp \
+            openssl/openssl.cpp zsign.cpp \
+            -I$OPENSSL/include \
+            -L$OPENSSL/lib \
+            -lssl -lcrypto -lz \
+            -o zsign
+          sudo cp zsign /usr/local/bin/zsign
+          zsign --version || echo "zsign built"
 
       - name: Resolve Swift packages
         run: |
@@ -58,19 +72,15 @@ jobs:
           P12_BASE64:   ${{ secrets.P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
         run: |
-          # Decode P12
           echo "$P12_BASE64" | tr -d ' \n\r' | base64 --decode > /tmp/cert.p12
 
-          # Find the .app
           APP_PATH=$(find $RUNNER_TEMP/App.xcarchive -name "*.app" | head -1)
           echo "App: $APP_PATH"
 
-          # Package unsigned IPA
           mkdir -p /tmp/Payload
           cp -r "$APP_PATH" /tmp/Payload/
           cd /tmp && zip -qr $RUNNER_TEMP/unsigned.ipa Payload/
 
-          # Sign with zsign
           zsign \
             -k /tmp/cert.p12 \
             -p "$P12_PASSWORD" \
@@ -106,4 +116,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f /tmp/cert.p12 /tmp/unsigned.ipa
+        run: rm -f /tmp/cert.p12 $RUNNER_TEMP/unsigned.ipa
