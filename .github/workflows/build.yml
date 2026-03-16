@@ -33,9 +33,29 @@ jobs:
         env:
           PROFILE_BASE64: ${{ secrets.PROFILE_BASE64 }}
         run: |
+          PROFILE_UUID="32B473B9-B335-425A-9B7E-4A62A6DB1290"
+          PROFILE_NAME="${PROFILE_UUID}.mobileprovision"
+
+          # Decode profile
+          echo "$PROFILE_BASE64" | base64 --decode > /tmp/profile.mobileprovision
+
+          # Install to all known Xcode profile locations
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROFILE_BASE64" | base64 --decode > \
-            ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
+          cp /tmp/profile.mobileprovision \
+            ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_NAME}
+
+          mkdir -p ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision \
+            ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/${PROFILE_NAME}
+
+          # Verify both locations
+          echo "Location 1:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_NAME}
+          echo "Location 2:"
+          ls -la ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/${PROFILE_NAME}
+
+          # Confirm UUID readable
+          security cms -D -i /tmp/profile.mobileprovision | grep -A1 "<key>UUID</key>"
 
       - name: Import certificate into keychain
         env:
