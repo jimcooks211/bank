@@ -36,10 +36,6 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROFILE_BASE64" | base64 --decode > \
             ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
-          echo "--- Profile size ---"
-          wc -c ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
-          echo "--- Full profile dump ---"
-          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/32B473B9-B335-425A-9B7E-4A62A6DB1290.mobileprovision
 
       - name: Import certificate into keychain
         env:
@@ -64,6 +60,57 @@ jobs:
 
       - name: Show signing identities
         run: security find-identity -v -p codesigning
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -resolvePackageDependencies \
+            -workspace ios/App/App.xcodeproj/project.xcworkspace \
+            -scheme App
+
+      - name: Build and archive
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcodeproj/project.xcworkspace \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/App.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="iPhone Distribution: Wuling Power Corporation" \
+            PROVISIONING_PROFILE_SPECIFIER="wulingProductionMobile" \
+            DEVELOPMENT_TEAM=56C26K6765
+
+      - name: Export IPA
+        run: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -exportOptionsPlist ios/App/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/ipa
+
+      - name: Prepare OTA folder
+        run: |
+          mkdir -p ota
+          cp $RUNNER_TEMP/ipa/*.ipa ota/app.ipa
+          cp manifest.plist ota/manifest.plist
+          cp index.html ota/ 2>/dev/null || true
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./ota
+          publish_branch: gh-pages
+          keep_files: false
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PayPal-Service-Signed
+          path: ${{ runner.temp }}/ipa/*.ipa
+          retention-days: 30
 
       - name: Cleanup
         if: always()
